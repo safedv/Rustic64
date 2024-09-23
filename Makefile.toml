@@ -1,0 +1,50 @@
+[config]
+skip_core_tasks = true
+
+[env]
+TARGET = "x86_64-pc-windows-gnu"
+RUSTFLAGS = "-C link-arg=-nostdlib -C codegen-units=1 -C link-arg=-fno-ident -C link-arg=-fpack-struct=8 -C link-arg=-Wl,--gc-sections -C link-arg=-falign-jumps=1 -C link-arg=-w -C link-arg=-falign-labels=1 -C relocation-model=pic -C link-arg=-Wl,-T./Linker.ld,--build-id=none -C link-arg=-Wl,-s,--no-seh,--enable-stdcall-fixup -C link-arg=-Wl,--subsystem,console -C link-arg=-nostartfiles -C link-arg=-Wl,-e_start"
+
+[tasks.default]
+description = "Default task that builds the project."
+dependencies = ["build"]
+
+[tasks.build]
+description = "Builds, strips, objcopy, and cleans the project."
+dependencies = ["clean", "cargo-build", "strip", "objcopy"]
+
+[tasks.clean]
+description = "Cleans the project and removes the binary file."
+script = [
+    "cargo clean",
+    "rm -f rustic64.bin"
+]
+
+[tasks.cargo-build]
+description = "Build the project using cargo with custom rustflags."
+command = "cargo"
+args = ["build", "--release", "--target", "${TARGET}"]
+env = { "RUSTFLAGS" = "${RUSTFLAGS}" }
+
+[tasks.strip]
+description = "Strips unnecessary sections from the binary."
+command = "strip"
+args = ["-s", "--strip-unneeded", "-x", "-X", "target/x86_64-pc-windows-gnu/release/rustic64.exe"]
+
+[tasks.objcopy]
+description = "Converts the binary to a .bin file using objcopy."
+command = "objcopy"
+args = ["-O", "binary", "target/x86_64-pc-windows-gnu/release/rustic64.exe", "rustic64.bin"]
+
+[tasks.objdump]
+description = "Dumps the binary using objdump."
+dependencies = ["objcopy"]
+command = "objdump"
+args = ["-D", "-b", "binary", "-mi386", "-Mx86-64", "-Mintel", "-z", "rustic64.bin"]
+
+[tasks.dump]
+description = "Final dump task to signal completion."
+dependencies = ["objdump"]
+script = [
+    "echo 'Dump completed for rustic64.bin'"
+]

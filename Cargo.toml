@@ -1,0 +1,16 @@
+[package]
+name = "Rustic64"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+panic-halt = "0.2"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+lto = true
+codegen-units = 1
