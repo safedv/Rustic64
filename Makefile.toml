@@ -2,7 +2,7 @@
 skip_core_tasks = true
 
 [env]
-NIGHTLY_VERSION = "nightly-2025-02-14"
+NIGHTLY_VERSION = "nightly"
 OUTPUT_NAME = "Rustic64.exe"
 OUTPUT_BIN = "Rustic64.bin"
 
@@ -24,7 +24,6 @@ dependencies = ["clean", "cargo-build", "strip", "objcopy"]
 description = "Cleans the project and removes old binaries."
 script = [
     "cargo clean",
-    "rm -f ${OUTPUT_BIN}"
 ]
 
 [tasks.cargo-build]

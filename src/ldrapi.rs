@@ -1,7 +1,7 @@
 use crate::{
     ntpeb::{
-        find_peb, ImageDosHeader, ImageExportDirectory, ImageNtHeaders, LoaderDataTableEntry,
-        PebLoaderData, IMAGE_DOS_SIGNATURE, IMAGE_NT_SIGNATURE,
+        IMAGE_DOS_SIGNATURE, IMAGE_NT_SIGNATURE, ImageDosHeader, ImageExportDirectory,
+        ImageNtHeaders, LoaderDataTableEntry, PebLoaderData, find_peb,
     },
     utils::{dbj2_hash, get_cstr_len},
 };
@@ -19,12 +19,13 @@ pub fn get_nt_headers(base_addr: *mut u8) -> *mut ImageNtHeaders {
     let dos_header = base_addr as *mut ImageDosHeader;
 
     // Check if the DOS signature is valid (MZ)
-    if unsafe {(*dos_header).e_magic } != IMAGE_DOS_SIGNATURE {
+    if unsafe { (*dos_header).e_magic } != IMAGE_DOS_SIGNATURE {
         return null_mut();
     }
 
     // Calculate the address of NT headers
-    let nt_headers = (base_addr as isize + unsafe { (*dos_header).e_lfanew as isize }) as *mut ImageNtHeaders;
+    let nt_headers =
+        (base_addr as isize + unsafe { (*dos_header).e_lfanew as isize }) as *mut ImageNtHeaders;
 
     // Check if the NT signature is valid (PE\0\0)
     if unsafe { (*nt_headers).signature } != IMAGE_NT_SIGNATURE as _ {
@@ -54,15 +55,16 @@ pub fn ldr_module(module_hash: u32) -> *mut u8 {
 
     // Start with the first module in the InLoadOrderModuleList
     let mut module_list =
-    unsafe { (*peb_ldr_data_ptr).in_load_order_module_list.flink as *mut LoaderDataTableEntry };
+        unsafe { (*peb_ldr_data_ptr).in_load_order_module_list.flink as *mut LoaderDataTableEntry };
 
     // Iterate through the list of loaded modules
-    while unsafe {  !(*module_list).dll_base.is_null() } {
-        let dll_buffer_ptr = unsafe {  (*module_list).base_dll_name.buffer };
+    while unsafe { !(*module_list).dll_base.is_null() } {
+        let dll_buffer_ptr = unsafe { (*module_list).base_dll_name.buffer };
         let dll_length = unsafe { (*module_list).base_dll_name.length as usize };
 
         // Create a slice from the DLL name
-        let dll_name_slice = unsafe { core::slice::from_raw_parts(dll_buffer_ptr as *const u8, dll_length) };
+        let dll_name_slice =
+            unsafe { core::slice::from_raw_parts(dll_buffer_ptr as *const u8, dll_length) };
 
         // Compare the hash of the DLL name with the provided hash
         if module_hash == dbj2_hash(dll_name_slice) {
@@ -70,7 +72,8 @@ pub fn ldr_module(module_hash: u32) -> *mut u8 {
         }
 
         // Move to the next module in the list
-        module_list = unsafe { (*module_list).in_load_order_links.flink as *mut LoaderDataTableEntry };
+        module_list =
+            unsafe { (*module_list).in_load_order_links.flink as *mut LoaderDataTableEntry };
     }
 
     null_mut() // Return null if no matching module is found
@@ -92,8 +95,8 @@ pub fn ldr_function(module_base: *mut u8, function_hash: usize) -> *mut u8 {
 
     // Get the export directory from the NT headers
     let data_directory = unsafe { &(*p_img_nt_headers).optional_header.data_directory[0] }; // Assuming IMAGE_DIRECTORY_ENTRY_EXPORT is 0
-    let export_directory =
-        (unsafe { module_base.offset(data_directory.virtual_address as isize) }) as *mut ImageExportDirectory;
+    let export_directory = (unsafe { module_base.offset(data_directory.virtual_address as isize) })
+        as *mut ImageExportDirectory;
     if export_directory.is_null() {
         return null_mut();
     }
@@ -102,14 +105,18 @@ pub fn ldr_function(module_base: *mut u8, function_hash: usize) -> *mut u8 {
     let array_of_names =
         unsafe { module_base.offset((*export_directory).address_of_names as isize) } as *const u32;
     let array_of_addresses =
-        unsafe { module_base.offset((*export_directory).address_of_functions as isize) } as *const u32;
+        unsafe { module_base.offset((*export_directory).address_of_functions as isize) }
+            as *const u32;
     let array_of_ordinals =
-        unsafe { module_base.offset((*export_directory).address_of_name_ordinals as isize) } as *const u16;
+        unsafe { module_base.offset((*export_directory).address_of_name_ordinals as isize) }
+            as *const u16;
 
     // Create slices from the export directory arrays
     let names = unsafe { core::slice::from_raw_parts(array_of_names, number_of_functions as _) };
-    let functions = unsafe { core::slice::from_raw_parts(array_of_addresses, number_of_functions as _) };
-    let ordinals = unsafe { core::slice::from_raw_parts(array_of_ordinals, number_of_functions as _) };
+    let functions =
+        unsafe { core::slice::from_raw_parts(array_of_addresses, number_of_functions as _) };
+    let ordinals =
+        unsafe { core::slice::from_raw_parts(array_of_ordinals, number_of_functions as _) };
 
     // Iterate through the export names to find the function matching the given hash
     for i in 0..number_of_functions {

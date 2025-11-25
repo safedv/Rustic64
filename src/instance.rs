@@ -5,6 +5,7 @@ use crate::{
     ldrapi::{ldr_function, ldr_module},
 };
 
+#[allow(non_snake_case)]
 pub type RtlCreateHeap = unsafe extern "system" fn(
     Flags: u32,
     HeapBase: *mut u8,
@@ -14,12 +15,15 @@ pub type RtlCreateHeap = unsafe extern "system" fn(
     Parameters: *mut u8,
 ) -> *mut c_void;
 
+#[allow(non_snake_case)]
 pub type RtlAllocateHeap =
     unsafe extern "system" fn(hHeap: *mut c_void, dwFlags: u32, dwBytes: usize) -> *mut u8;
 
+#[allow(non_snake_case)]
 pub type RtlFreeHeap =
     unsafe extern "system" fn(hHeap: *mut c_void, dwFlags: u32, lpMem: *mut u8) -> i32;
 
+#[allow(non_snake_case)]
 pub type RtlReAllocateHeap = unsafe extern "system" fn(
     hHeap: *mut c_void,
     dwFlags: u32,
@@ -27,19 +31,21 @@ pub type RtlReAllocateHeap = unsafe extern "system" fn(
     dwBytes: usize,
 ) -> *mut u8;
 
+#[allow(non_snake_case)]
 pub type RtlDestroyHeap = unsafe extern "system" fn(hHeap: *mut c_void) -> *mut c_void;
 
+#[allow(non_snake_case)]
 pub type NtTerminateProcess =
     unsafe extern "system" fn(ProcessHandle: *mut c_void, ExitStatus: i32) -> i32;
 
 pub struct Ntdll {
     pub module_base: *mut u8,
-    pub rtl_create_heap: RtlCreateHeap,
-    pub rtl_allocate_heap: RtlAllocateHeap,
-    pub rtl_free_heap: RtlFreeHeap,
-    pub rtl_re_allocate_heap: RtlReAllocateHeap,
-    pub rtl_destroy_heap: RtlDestroyHeap,
-    pub nt_terminate_process: NtTerminateProcess,
+    pub rtl_create_heap: Option<RtlCreateHeap>,
+    pub rtl_allocate_heap: Option<RtlAllocateHeap>,
+    pub rtl_free_heap: Option<RtlFreeHeap>,
+    pub rtl_re_allocate_heap: Option<RtlReAllocateHeap>,
+    pub rtl_destroy_heap: Option<RtlDestroyHeap>,
+    pub nt_terminate_process: Option<NtTerminateProcess>,
 }
 
 impl Ntdll {
@@ -56,6 +62,7 @@ impl Ntdll {
     }
 }
 
+#[allow(non_snake_case)]
 pub type WriteFile = unsafe extern "system" fn(
     hFile: *mut c_void,
     lpBuffer: *const c_void,
@@ -71,7 +78,7 @@ pub struct Instance {
     pub heap_handle: *mut c_void,
     pub ntdll: Ntdll,
     pub kernel32_base: *mut u8,
-    pub write_file: WriteFile,
+    pub write_file: Option<WriteFile>,
 }
 
 // Constant to identify a valid instance by a unique "magic" number.
