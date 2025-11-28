@@ -16,9 +16,9 @@ mod ntpeb;
 mod utils;
 
 use allocator::NT_HEAPALLOCATOR;
-use instance::init_native_funcs;
-use instance::Instance;
 use instance::INSTANCE_MAGIC;
+use instance::Instance;
+use instance::init_native_funcs;
 use ntpeb::find_peb;
 
 global_asm!(
@@ -40,10 +40,11 @@ _start:
 );
 
 unsafe extern "C" {
-    fn _start();
+    unsafe fn _start();
 }
 
 #[unsafe(no_mangle)]
+#[inline(never)]
 pub extern "C" fn initialize() {
     unsafe {
         let mut instance = Instance::new();
@@ -61,34 +62,38 @@ pub extern "C" fn initialize() {
         // Append the instance_ptr
         *process_heaps.add(number_of_heaps) = instance_ptr;
 
+        // Initialize native functions
+        init_native_funcs();
+
         // Proceed to main function
         niam();
     }
 }
 
 fn niam() {
-    if let Some(instance) = get_instance() {
-        // Initialize native functions
-        init_native_funcs();
+    let inst = get_instance().unwrap();
+    let write_file = inst.write_file.unwrap();
+    let nt_terminate_process = inst.ntdll.nt_terminate_process.unwrap();
 
-        // Initialize global heap allocator
-        NT_HEAPALLOCATOR.initialize();
+    NT_HEAPALLOCATOR.initialize();
 
-        let mut bytes_written: u32 = 0;
+    let mut bytes_written: u32 = 0;
+    let test = "Rustic64!".to_string();
 
-        let test = "Rustic64!".to_string();
-
-        // Call WriteFile with a predefined message and handle (STD_OUTPUT_HANDLE = -11).
-        unsafe { (instance.write_file)(
-            -11i32 as u32 as *mut c_void,
+    // Call WriteFile with a predefined message and handle (STD_OUTPUT_HANDLE = -11).
+    unsafe {
+        write_file(
+            (-11i32) as u32 as *mut c_void, // STD_OUTPUT_HANDLE
             test.as_ptr() as *const c_void,
             test.len() as u32,
             &mut bytes_written,
             null_mut(),
-        ) };
+        );
+    }
 
-        // Call TerminateProcess with process handle -1 (current process).
-        unsafe { (instance.ntdll.nt_terminate_process)(-1isize as *mut c_void, 0) }; // Exit the current process with code 0.
+    // Call TerminateProcess with process handle -1 (current process).
+    unsafe {
+        nt_terminate_process(-1isize as *mut c_void, 0);
     }
 }
 
@@ -96,8 +101,8 @@ fn niam() {
 /// returns a mutable reference to it if found.
 fn get_instance() -> Option<&'static mut Instance> {
     let peb = find_peb(); // Locate the PEB (Process Environment Block)
-    let process_heaps = unsafe {(*peb).process_heaps};
-    let number_of_heaps = unsafe {(*peb).number_of_heaps as usize};
+    let process_heaps = unsafe { (*peb).process_heaps };
+    let number_of_heaps = unsafe { (*peb).number_of_heaps as usize };
 
     for i in 0..number_of_heaps {
         let heap = unsafe { *process_heaps.add(i) };

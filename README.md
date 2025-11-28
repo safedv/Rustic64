@@ -25,7 +25,7 @@ To build Rustic64, use the following commands:
   ```
 
 > [!NOTE]
-> Rustic64 requires Rust nightly 1.86 and supports only x86_64 targets (MSVC or GNU).
+> Rustic64 requires Rust nightly 1.93 and supports only x86_64 targets (MSVC or GNU).
 
 ## Disclaimer
 
